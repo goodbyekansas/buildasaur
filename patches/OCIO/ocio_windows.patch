@@ -1,0 +1,121 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index b05c7e4..a1c690a 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -536,13 +536,7 @@ INSTALL(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/share/ocio/setup_ocio.sh DESTINATIO
+ ###############################################################################
+ ### CPACK ###
+ 
+-set(CPACK_PACKAGE_VERSION_MAJOR ${SOVERSION})
+-set(CPACK_PACKAGE_VERSION_MINOR ${OCIO_VERSION_MINOR})
+-set(CPACK_PACKAGE_VERSION_PATCH ${OCIO_VERSION_PATCH})
+-set(CPACK_GENERATOR None)
+-set(CPACK_SOURCE_GENERATOR TGZ)
+-set(CPACK_SOURCE_PACKAGE_FILE_NAME "ocio.${OCIO_VERSION}")
+-include(CPack)
++include(${CMAKE_SOURCE_DIR}/installer.cmake)
+ 
+ ###############################################################################
+ ### CTEST ###
+diff --git a/installer.cmake b/installer.cmake
+new file mode 100644
+index 0000000..eba980b
+--- /dev/null
++++ b/installer.cmake
+@@ -0,0 +1,42 @@
++
++
++
++#########################################################################
++# Packaging
++set (CPACK_PACKAGE_VERSION_MAJOR ${OCIO_VERSION_MAJOR})
++set (CPACK_PACKAGE_VERSION_MINOR ${OCIO_VERSION_MINOR})
++set (CPACK_PACKAGE_VERSION_PATCH ${OCIO_VERSION_PATCH})
++# "Vendor" is only used in copyright notices, so we use the same thing that
++# the rest of the copyright notices say.
++set (CPACK_PACKAGE_VENDOR ${PROJECT_AUTHORS})
++set (CPACK_PACKAGE_FILE_NAME ${PROJECT_NAME}-${OCIO_VERSION_MAJOR}.${OCIO_VERSION_MINOR}.${OCIO_VERSION_PATCH}-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR})
++file (MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/cpack")
++file (COPY "${PROJECT_SOURCE_DIR}/LICENSE" DESTINATION "${CMAKE_BINARY_DIR}/cpack")
++file (RENAME "${CMAKE_BINARY_DIR}/cpack/LICENSE" "${CMAKE_BINARY_DIR}/cpack/License.txt")
++set (CPACK_RESOURCE_FILE_LICENSE "${CMAKE_BINARY_DIR}/cpack/License.txt")
++file (COPY "${PROJECT_SOURCE_DIR}/README.md" DESTINATION "${CMAKE_BINARY_DIR}/cpack")
++if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
++    set (CPACK_GENERATOR "TGZ;STGZ;RPM;DEB")
++    set (CPACK_SOURCE_GENERATOR "TGZ")
++endif ()
++if (APPLE)
++    set (CPACK_GENERATOR "TGZ;STGZ;PackageMaker")
++    set (CPACK_SOURCE_GENERATOR "TGZ")
++endif ()
++if (WIN32)
++    set (CPACK_GENERATOR "NSIS")
++    set(CPACK_NSIS_MODIFY_PATH ON)
++    include (InstallRequiredSystemLibraries)
++endif ()
++set (CPACK_SOURCE_PACKAGE_FILE_NAME ${PROJECT_NAME}-${OCIO_VERSION_MAJOR}.${OCIO_VERSION_MINOR}.${OCIO_VERSION_PATCH}-source)
++set (CPACK_SOURCE_IGNORE_FILES ".*~")
++set (CPACK_COMPONENT_UNSPECIFIED_HIDDEN TRUE)
++set (CPACK_COMPONENT_UNSPECIFIED_REQUIRED TRUE)
++set (CPACK_COMPONENTS_ALL user developer documentation Unspecified)
++set (CPACK_COMPONENT_USER_DISPLAY_NAME "Applications")
++set (CPACK_COMPONENT_DEVELOPER_DISPLAY_NAME "Developer files")
++set (CPACK_COMPONENT_DOCUMENTATION_DISPLAY_NAME "Documentation")
++set (CPACK_COMPONENT_DEVELOPER_DESCRIPTION "Include files")
++set (CPACK_COMPONENT_DOCUMENTATION_DESCRIPTION "OpenColorIO documentation")
++set (CPACK_COMPONENT_DEVELOPER_DEPENDS user)
++include (CPack)
+diff --git a/src/core/CMakeLists.txt b/src/core/CMakeLists.txt
+index 1eb691b..9dc67d3 100644
+--- a/src/core/CMakeLists.txt
++++ b/src/core/CMakeLists.txt
+@@ -66,9 +66,9 @@ if(OCIO_BUILD_SHARED)
+         SOVERSION ${SOVERSION})
+     
+     install(TARGETS OpenColorIO EXPORT OpenColorIO 
+-        ARCHIVE DESTINATION ${CMAKE_INSTALL_EXEC_PREFIX}/lib${LIB_SUFFIX}
+-        LIBRARY DESTINATION ${CMAKE_INSTALL_EXEC_PREFIX}/lib${LIB_SUFFIX}
+-        RUNTIME DESTINATION ${CMAKE_INSTALL_EXEC_PREFIX}/bin
++        ARCHIVE DESTINATION lib${LIB_SUFFIX}
++        LIBRARY DESTINATION lib${LIB_SUFFIX}
++        RUNTIME DESTINATION bin
+     )
+ endif()
+ 
+@@ -94,7 +94,7 @@ if(OCIO_BUILD_STATIC)
+         VERSION ${OCIO_VERSION}
+         SOVERSION ${SOVERSION})
+     
+-    install(TARGETS OpenColorIO_STATIC EXPORT OpenColorIO ARCHIVE DESTINATION ${CMAKE_INSTALL_EXEC_PREFIX}/lib/static)
++    install(TARGETS OpenColorIO_STATIC EXPORT OpenColorIO ARCHIVE DESTINATION lib/static)
+ endif()
+ 
+ macro(target_link_OCIO target)
+@@ -109,11 +109,11 @@ endmacro()
+ 
+ # public interface
+ install(FILES ${core_export_headers}
+-    DESTINATION ${CMAKE_INSTALL_PREFIX}/include/OpenColorIO/)
++    DESTINATION include/OpenColorIO/)
+ 
+ # pkg-config
+ message(STATUS "Create OpenColorIO.pc from OpenColorIO.pc.in")
+ configure_file(${CMAKE_SOURCE_DIR}/export/pkgconfig/OpenColorIO.pc.in
+     ${CMAKE_CURRENT_BINARY_DIR}/OpenColorIO.pc @ONLY)
+ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/OpenColorIO.pc
+-    DESTINATION ${CMAKE_INSTALL_EXEC_PREFIX}/lib${LIB_SUFFIX}/pkgconfig/)
++    DESTINATION lib${LIB_SUFFIX}/pkgconfig/)
+diff --git a/src/pyglue/CMakeLists.txt b/src/pyglue/CMakeLists.txt
+index a90ca1c..f7e11d5 100644
+--- a/src/pyglue/CMakeLists.txt
++++ b/src/pyglue/CMakeLists.txt
+@@ -111,7 +111,7 @@ add_subdirectory(tests)
+ 
+ message("PYTHON_VARIANT_PATH: ${PYTHON_VARIANT_PATH}")
+ 
+-install(TARGETS PyOpenColorIO EXPORT OpenColorIO DESTINATION ${CMAKE_INSTALL_EXEC_PREFIX}/${PYTHON_VARIANT_PATH})
++install(TARGETS PyOpenColorIO EXPORT OpenColorIO DESTINATION ${PYTHON_VARIANT_PATH})
+ 
+ install(FILES ${CMAKE_SOURCE_DIR}/export/PyOpenColorIO/PyOpenColorIO.h
+-    DESTINATION ${CMAKE_INSTALL_PREFIX}/include/PyOpenColorIO/)
++    DESTINATION include/PyOpenColorIO/)

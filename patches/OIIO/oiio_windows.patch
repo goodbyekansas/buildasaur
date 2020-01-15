@@ -1,0 +1,42 @@
+diff --git a/src/libOpenImageIO/CMakeLists.txt b/src/libOpenImageIO/CMakeLists.txt
+index ef05fec6..e4353c1e 100644
+--- a/src/libOpenImageIO/CMakeLists.txt
++++ b/src/libOpenImageIO/CMakeLists.txt
+@@ -215,6 +215,9 @@ endif()
+ 
+ install_targets (OpenImageIO)
+ 
++install(DIRECTORY $<TARGET_FILE_DIR:OpenImageIO>/
++  TYPE BIN
++  FILES_MATCHING PATTERN "*.dll")
+ 
+ # Testing
+ 
+diff --git a/src/nuke/txReader/txReader.cpp b/src/nuke/txReader/txReader.cpp
+index b8042046..f01d4dad 100644
+--- a/src/nuke/txReader/txReader.cpp
++++ b/src/nuke/txReader/txReader.cpp
+@@ -1,7 +1,8 @@
+ #ifndef _WIN32
+-#    include <unistd.h>
++#	include <unistd.h>
++#else
++#   include <io.h>
+ #endif
+-
+ #include "DDImage/Enumeration_KnobI.h"
+ #include "DDImage/Reader.h"
+ #include "DDImage/Row.h"
+@@ -343,10 +344,10 @@ public:
+                 from_float(z, &chanBuf[0], &imageBuf_[bufStart + chanMap_[z]],
+                            alpha, bufW, chanCount_);
+ 
+-                float* OUT = row.writable(z);
++				float* OUT_ROW = row.writable(z);
+                 for (int stride = 0, c = 0; stride < bufW; stride++, c = 0)
+                     for (; c < mipMult; c++)
+-                        *OUT++ = *(chanStart + stride);
++                        *OUT_ROW++ = *(chanStart + stride);
+             }
+         } else {  // Mip level 0
+             const int pixStart = y * width() * chanCount_ + x * chanCount_;
